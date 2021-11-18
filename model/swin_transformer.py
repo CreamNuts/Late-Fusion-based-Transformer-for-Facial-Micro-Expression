@@ -726,35 +726,35 @@ class Swin(nn.Module):
 
 @register_model
 def ch1_swin(**kwargs):
-    if hasattr(kwargs, "image_size"):
+    if "image_size" in kwargs.keys():
         kwargs.pop("image_size")
-    if hasattr(kwargs, "num_frames"):
+    if "num_frames" in kwargs.keys():
         kwargs.pop("num_frames")
     return Swin(cfg=default_cfgs["ch1_swin"], **kwargs)
 
 
 @register_model
 def ch3_swin(**kwargs):
-    if hasattr(kwargs, "image_size"):
+    if "image_size" in kwargs.keys():
         kwargs.pop("image_size")
-    if hasattr(kwargs, "num_frames"):
+    if "num_frames" in k:
         kwargs.pop("num_frames")
     return Swin(cfg=default_cfgs["ch3_swin"], **kwargs)
 
 
 @register_model
 def ch4_swin(**kwargs):
-    if hasattr(kwargs, "image_size"):
+    if "image_size" in kwargs.keys():
         kwargs.pop("image_size")
-    if hasattr(kwargs, "num_frames"):
+    if "num_frames" in k:
         kwargs.pop("num_frames")
     return Swin(cfg=default_cfgs["ch4_swin"], **kwargs)
 
 
 @register_model
 def ch6_swin(**kwargs):
-    if hasattr(kwargs, "image_size"):
+    if "image_size" in kwargs.keys():
         kwargs.pop("image_size")
-    if hasattr(kwargs, "num_frames"):
+    if "num_frames" in k:
         kwargs.pop("num_frames")
     return Swin(cfg=default_cfgs["ch6_swin"], **kwargs)
