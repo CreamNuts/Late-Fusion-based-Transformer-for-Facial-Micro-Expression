@@ -2,7 +2,11 @@
 This implementation is ans official code on the paper *Late Fusion-based Video Transformer for Facial Micro-expression Recognition*. In paper, we just validated one micro-facial dataset, SMIC. But we implemented our code to be able to expriment on the CASME2 and SAMM dataset for futher research.
 
 ## Requirements
-You can install required library using `requirements.txt` file. Please be careful to install the pytorch. We don't test all the version of pytorch. 
+* Python 3.9 +
+* Pytorch 1.7.1
+* TorchVision 0.8.2
+Details are specified in `requirements.txt`. Use `pip install -r requirements.txt`. Please be careful to install the pytorch. We don't test all the version of pytorch. 
+
 
 ## Prepare for Learning
 In SMIC, there is no version of face crop. The upper body and background other than the face are not very related to facial micro-expressions, so they should be removed for learning. Then we used [MTCNN](https://github.com/timesler/facenet-pytorch) for face cropping. In addition, we also implemented code using [MobilenetV2](https://github.com/cunjian/pytorch_face_landmark) to obtain face alignment for futher research.
