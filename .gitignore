@@ -1,0 +1,9 @@
+*.code-workspace
+.vscode/settings.json
+*.pyc
+*.ipynb
+*tfevents*
+*.tar
+*.xlsx
+*.pyth
+*.pth
