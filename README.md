@@ -2,9 +2,9 @@
 This implementation is ans official code on the paper *Late Fusion-based Video Transformer for Facial Micro-expression Recognition*. In paper, we just validated one micro-facial dataset, SMIC. But we implemented our code to be able to expriment on the CASME2 and SAMM dataset for futher research.
 
 ## Requirements
-* Python 3.9 +
-* Pytorch 1.7.1
-* TorchVision 0.8.2
+* Python 3.9.6
+* Pytorch 1.9.0
+* TorchVision 0.10.0
 Details are specified in `requirements.txt`. Use `pip install -r requirements.txt`. Please be careful to install the pytorch. We don't test all the version of pytorch. 
 
 

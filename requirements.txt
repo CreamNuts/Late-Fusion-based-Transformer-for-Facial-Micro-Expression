@@ -1,24 +1,22 @@
 --find-links https://download.pytorch.org/whl/torch_stable.html
-torch==1.9.0+cu111
-torchvision==0.10.0+cu111
+albumentations==0.5.2
+einops==0.3.0
 facenet-pytorch==2.5.1
+matplotlib==3.4.3
+moviepy==1.0.3
 numpy==1.19.5
+opencv-python==4.5.1.48
+opencv-python-headless==4.5.3.56
 pandas==1.2.1
 Pillow==8.1.0
+scikit-image==0.18.2
 scikit-learn==0.24.1
 scipy==1.6.0
+seaborn==0.11.1
 sklearn==0.0
 tensorboard==2.4.1
-tensorboard-plugin-wit==1.8.0
-timm==0.3.4
-torch==1.7.1
-torchvision==0.8.2
+torch==1.9.0+cu111
+torchaudio==0.9.0
+torchsampler @ https://github.com/ufoym/imbalanced-dataset-sampler/archive/master.zip
+torchvision==0.10.0+cu111
 tqdm==4.56.0
-xlrd==2.0.1
-openpyxl==3.0.6
-seaborn==0.11.1
-opencv-python==4.5.1.48
-einops==0.3.0
-albumentations==0.5.2
-moviepy==1.0.3
-https://github.com/ufoym/imbalanced-dataset-sampler/archive/master.zip #torchsampler
