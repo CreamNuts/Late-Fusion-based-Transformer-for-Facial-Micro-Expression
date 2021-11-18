@@ -737,7 +737,7 @@ def ch1_swin(**kwargs):
 def ch3_swin(**kwargs):
     if "image_size" in kwargs.keys():
         kwargs.pop("image_size")
-    if "num_frames" in k:
+    if "num_frames" in kwargs.keys():
         kwargs.pop("num_frames")
     return Swin(cfg=default_cfgs["ch3_swin"], **kwargs)
 
@@ -746,7 +746,7 @@ def ch3_swin(**kwargs):
 def ch4_swin(**kwargs):
     if "image_size" in kwargs.keys():
         kwargs.pop("image_size")
-    if "num_frames" in k:
+    if "num_frames" in kwargs.keys():
         kwargs.pop("num_frames")
     return Swin(cfg=default_cfgs["ch4_swin"], **kwargs)
 
@@ -755,6 +755,6 @@ def ch4_swin(**kwargs):
 def ch6_swin(**kwargs):
     if "image_size" in kwargs.keys():
         kwargs.pop("image_size")
-    if "num_frames" in k:
+    if "num_frames" in kwargs.keys():
         kwargs.pop("num_frames")
     return Swin(cfg=default_cfgs["ch6_swin"], **kwargs)
