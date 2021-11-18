@@ -5,6 +5,7 @@ This implementation is ans official code on the paper *Late Fusion-based Video T
 * Python 3.9.6
 * Pytorch 1.9.0
 * TorchVision 0.10.0
+
 Details are specified in `requirements.txt`. Use `pip install -r requirements.txt`. Please be careful to install the pytorch. We don't test all the version of pytorch. 
 
 
