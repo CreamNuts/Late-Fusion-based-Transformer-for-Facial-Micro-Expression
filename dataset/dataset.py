@@ -63,11 +63,34 @@ class Facial(Dataset):
         video = self.video2of(video)
         return video, self.dataset["Label"].iloc[index]
 
+    def get_input_and_orig(self, index: int) -> torch.Tensor:
+        """
+        Get data from dataset and original video w.r.t index
+        Return: (S, C, H, W) torch.Tensor
+        """
+        video_path = self.dataset["Paths"].iloc[index]
+        video = []
+        replay = None  # for applying same augmentation to all frames in video
+        for frame_path in video_path:
+            frame = cv2.imread(frame_path)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            if not replay:
+                frame = self.transform(image=frame)
+                replay = frame["replay"]
+            else:
+                frame = A.ReplayCompose.replay(replay, image=frame)
+            video.append(frame["image"])
+        video = rearrange(video, "s c h w -> s c h w")
+        video = self.interpolation(video)
+        return *self[index], video
+
     def __len__(self):
         return len(self.dataset["Label"])
 
     def get_labels(self):
-        return [self[i][1] for i in range(len(self))]
+        return self.dataset["Label"].to_list()
+
+        # [self[i][1] for i in range(len(self))]
 
     def path2tensor(self, video_path: List[str]) -> torch.Tensor:
         """
@@ -102,7 +125,7 @@ class Facial(Dataset):
     def get_sample(self):
         """
         Get data w.r.t label
-        Return: List of tuples (tensor(S, C, H, W), label)
+        Return: List of tuples (tensor(S, C, H, W), label, rgb tensor(S, C, H, W))
         """
         label_set = set(self.dataset["Label"])
         idx_list = []
@@ -113,7 +136,7 @@ class Facial(Dataset):
             if not label_set:
                 break
         idx_list.sort()
-        return [self[idx] for _, idx in idx_list]
+        return [self.get_input_and_orig(idx) for _, idx in idx_list]
 
     def get_dataset(self) -> pd.DataFrame:
         """
@@ -135,6 +158,7 @@ def get_dataset(mixin, *args, **kwargs):
 
 class SMICMixIn:
     str2int = {"ne": 0, "po": 1, "sur": 2}
+    int2str = {i: k for k, i in str2int.items()}
     subject_list = [i for i in range(1, 21) if i not in [7, 10, 16, 17]]
     num_classes = 3
 
@@ -174,6 +198,7 @@ class SAMMMixIn:
         # 'Fear': 6,  # 5.03%/8 samples
         # 'Sadness': 7,  # 3.77%/6 samples
     }
+    int2str = {i: k for k, i in str2int.items()}
     subject_list = [i for i in range(6, 38) if i not in [8, 27, 29]]
     num_classes = 5
 
@@ -210,6 +235,7 @@ class CASME2MixIn:
         # 'fear': 5,
         "surprise": 4,
     }
+    int2str = {i: k for k, i in str2int.items()}
     subject_list = list(range(1, 27))
     num_classes = 5
 

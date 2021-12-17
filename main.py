@@ -1,10 +1,13 @@
 import argparse
+import logging
+import os
 import warnings
 
 import albumentations as A
 import cv2
 import torch
 from torch import nn
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -17,6 +20,7 @@ from train import trainval
 from utils import size2tuple
 
 warnings.filterwarnings(action="ignore")
+_logger = logging.getLogger("train")
 
 
 def _parser_args():
@@ -35,7 +39,6 @@ def _parser_args():
     parser.add_argument(
         "DATASET",
         type=str,
-        default="SMIC",
         help="Choose your dataset in ['SMIC', 'CASME2', 'SAMM']",
     )
     parser.add_argument(
@@ -75,15 +78,8 @@ def _parser_args():
     )
     parser.add_argument("-bs", type=int, default=1, dest="BATCH_SIZE", help="Train batch size")
     parser.add_argument("-lr", type=float, default=1e-5, dest="LR", help="Learning rate")
-    parser.add_argument("-ep", type=int, default=50, dest="EPOCH", help="Num of epochs")
-    parser.add_argument(
-        "-gpu",
-        type=int,
-        default=[0],
-        nargs="+",
-        dest="GPU",
-        help="GPU number to use. If not available, use CPU",
-    )
+    parser.add_argument("-ep", type=int, default=100, dest="EPOCH", help="Num of epochs")
+    parser.add_argument("--local_rank", default=0, type=int)
     parser.add_argument(
         "--imbalanced_sampler",
         action="store_true",
@@ -103,6 +99,26 @@ def _parser_args():
 
 if __name__ == "__main__":
     args = _parser_args()
+    args.distributed = False
+    if "WORLD_SIZE" in os.environ:
+        args.distributed = int(os.environ["WORLD_SIZE"]) > 1
+    args.device = "cuda:0"
+    args.world_size = 1
+    args.rank = 0  # global rank
+    if args.distributed:
+        args.device = "cuda:%d" % args.local_rank
+        torch.cuda.set_device(args.local_rank)
+        torch.distributed.init_process_group(backend="nccl", init_method="env://")
+        args.world_size = torch.distributed.get_world_size()
+        args.rank = torch.distributed.get_rank()
+        _logger.info(
+            "Training in distributed mode with multiple processes, 1 GPU per process. Process %d, total %d."
+            % (args.rank, args.world_size)
+        )
+    else:
+        _logger.info("Training with a single process on 1 GPUs.")
+    assert args.rank >= 0
+
     img_size = size2tuple(args.IMG_SIZE)
 
     if "SAMM" in args.DATASET:
@@ -118,7 +134,7 @@ if __name__ == "__main__":
     str2int = mixin.str2int
 
     if args.IMBALANCED:
-        sampler = ImbalancedDatasetSampler
+        sampler = ImbalancedDDPSampler
     else:
         sampler = None
 
@@ -134,10 +150,10 @@ if __name__ == "__main__":
         A.Resize(height=int(img_size[0]), width=int(img_size[1])),
     ]
 
-    device = torch.device(f"cuda:{args.GPU[0]}" if torch.cuda.is_available() else "cpu")
+    # device = torch.device(f"cuda:{args.GPU[0]}" if torch.cuda.is_available() else "cpu")
     tb = f"{args.TENSOR_BOARD}"
     totalmeter = TotalMeter(f"{tb}/total/")
-    for val_idx in subject_list:
+    for i, val_idx in enumerate(subject_list, 1):
         trainset = get_dataset(
             mixin,
             args.DATA_PATH,
@@ -169,16 +185,23 @@ if __name__ == "__main__":
         valloader = DataLoader(valset, batch_size=args.BATCH_SIZE, shuffle=False, num_workers=8)
         model = create_model(
             args.MODEL, image_size=img_size, num_frames=args.NUM_FRAMES, num_classes=num_classes
-        ).to(device)
+        )
+        model.cuda()
+
+        if args.distributed:
+            if args.local_rank == 0:
+                _logger.info("Using native Torch DistributedDataParallel.")
+            model = DDP(model, device_ids=[args.local_rank], broadcast_buffers=False)
+
         optimizer = AdamW(model.parameters(), lr=args.LR, betas=(0.9, 0.999), weight_decay=0.05)
         criterion = nn.CrossEntropyLoss()
-        print(f"Subject {val_idx} Out")
-        if args.SUB_TB:
+        if args.local_rank == 0:
+            print(f"Subject {val_idx} Out, [{i}/{len(subject_list)}]")
+        if args.SUB_TB and args.local_rank == 0:
             writer = SummaryWriter(f"{tb}/{val_idx}_{len(trainset)}|{len(valset)}/")
         else:
             writer = None
         subjmeter = trainval(
-            device,
             args.EPOCH,
             model,
             optimizer,
@@ -186,18 +209,22 @@ if __name__ == "__main__":
             trainloader,
             valloader,
             writer,
+            args.local_rank,
+            args.distributed,
+            args.world_size,
         )
         if writer:
             writer.close()
         totalmeter.save(subjmeter)
-    totalmeter.tensorboard(
-        str2int=str2int,
-        num_classes=num_classes,
-        model=args.MODEL,
-        imbalanced=args.IMBALANCED,
-        interpolation=args.INTERPOL,
-        feature=args.FEATURE,
-        lr=args.LR,
-        bsize=args.BATCH_SIZE,
-        img_size=img_size,
-    )
+    if args.local_rank == 0:
+        totalmeter.tensorboard(
+            str2int=str2int,
+            num_classes=num_classes,
+            model=args.MODEL,
+            imbalanced=args.IMBALANCED,
+            interpolation=args.INTERPOL,
+            feature=args.FEATURE,
+            lr=args.LR,
+            bsize=args.BATCH_SIZE,
+            img_size=img_size,
+        )
