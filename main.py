@@ -39,7 +39,7 @@ def _parser_args():
     parser.add_argument(
         "DATASET",
         type=str,
-        help="Choose your dataset in ['SMIC', 'CASME2', 'SAMM']",
+        help="Choose your dataset in ['SMIC', 'CASME2', 'SAMM', 'CDE']",
     )
     parser.add_argument(
         "-tb", type=str, default=".", dest="TENSOR_BOARD", help="Tensorboad dir name"
@@ -111,6 +111,8 @@ if __name__ == "__main__":
         torch.distributed.init_process_group(backend="nccl", init_method="env://")
         args.world_size = torch.distributed.get_world_size()
         args.rank = torch.distributed.get_rank()
+        assert args.BATCH_SIZE % args.world_size == 0, "Batch size must be divisible by world size"
+        args.BATCH_SIZE = args.BATCH_SIZE // args.world_size
         _logger.info(
             "Training in distributed mode with multiple processes, 1 GPU per process. Process %d, total %d."
             % (args.rank, args.world_size)
@@ -127,6 +129,8 @@ if __name__ == "__main__":
         mixin = SMICMixIn
     elif "CASME2" in args.DATASET:
         mixin = CASME2MixIn
+    elif "CDE" in args.DATASET:
+        mixin = CDEMixIn
     else:
         raise NotImplementedError
     subject_list = mixin.subject_list
@@ -134,9 +138,12 @@ if __name__ == "__main__":
     str2int = mixin.str2int
 
     if args.IMBALANCED:
-        sampler = ImbalancedDDPSampler
+        if args.distributed:
+            train_sampler = ImbalancedDDPSampler
+        else:
+            train_sampler = ImbalancedDatasetSampler
     else:
-        sampler = None
+        train_sampler = None
 
     train_transform = [
         A.Resize(height=int(img_size[0]), width=int(img_size[1])),  # for Random Crop, *1.145
@@ -172,17 +179,29 @@ if __name__ == "__main__":
             subject=[val_idx],
             transform=val_transform,
         )
+        if len(valset) == 0:
+            if args.local_rank == 0:
+                print(f"Subject {val_idx} has no samples")
+            continue
 
-        if sampler:
+        if train_sampler:
             trainloader = DataLoader(
-                trainset, batch_size=args.BATCH_SIZE, sampler=sampler(trainset), num_workers=8
+                trainset,
+                batch_size=args.BATCH_SIZE,
+                sampler=train_sampler(trainset),
+                num_workers=8,
             )
         else:
             trainloader = DataLoader(
                 trainset, batch_size=args.BATCH_SIZE, shuffle=True, num_workers=8
             )
 
-        valloader = DataLoader(valset, batch_size=args.BATCH_SIZE, shuffle=False, num_workers=8)
+        valloader = DataLoader(
+            valset,
+            batch_size=1,
+            shuffle=False,
+            num_workers=8,
+        )
         model = create_model(
             args.MODEL, image_size=img_size, num_frames=args.NUM_FRAMES, num_classes=num_classes
         )
@@ -192,6 +211,7 @@ if __name__ == "__main__":
             if args.local_rank == 0:
                 _logger.info("Using native Torch DistributedDataParallel.")
             model = DDP(model, device_ids=[args.local_rank], broadcast_buffers=False)
+        torch.cuda.synchronize()
 
         optimizer = AdamW(model.parameters(), lr=args.LR, betas=(0.9, 0.999), weight_decay=0.05)
         criterion = nn.CrossEntropyLoss()

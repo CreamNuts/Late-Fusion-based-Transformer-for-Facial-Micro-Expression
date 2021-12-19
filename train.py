@@ -67,36 +67,20 @@ def trainval(
                 loss = criterion(output, label)
                 predict = torch.max(output, dim=1)[1]
                 # Record val loss and metrics
-                torch.cuda.synchronize()
-                if distributed:
-                    dist.all_reduce(loss, op=dist.ReduceOp.SUM)
-                    loss /= world_size
-                    dist_label = [
-                        torch.empty_like(label, dtype=label.dtype).cuda()
-                        for _ in range(world_size)
-                    ]
-                    dist.all_gather(dist_label, label)
-                    label = torch.cat(dist_label)
-                    dist_predict = [
-                        torch.empty_like(predict, dtype=predict.dtype).cuda()
-                        for _ in range(world_size)
-                    ]
-                    dist.all_gather(dist_predict, predict)
-                    predict = torch.cat(dist_predict)
                 subjmeter.val.loss -= (subjmeter.val.loss - loss.detach().cpu()) / i
                 subjmeter.val(
                     label.detach().cpu().numpy(), predict.detach().cpu().numpy(), output.shape[1]
                 )
         if local_rank == 0:
             pbar.update()
-        if writer:
-            visualizer = Visualizer(trainloader.dataset.int2str)
-            train_sample = trainloader.dataset.get_sample()
-            train_predict = visualizer.make_videos(model, train_sample)
-            val_sample = valloader.dataset.get_sample()
-            val_predict = visualizer.make_videos(model, val_sample)
-            writer.add_video("Train Predict", train_predict, epoch, fps=4)
-            writer.add_video("Val Predict", val_predict, epoch, fps=4)
+        # if writer:
+        #     visualizer = Visualizer(trainloader.dataset.int2str)
+        #     train_sample = trainloader.dataset.get_sample()
+        #     train_predict = visualizer.make_videos(model, train_sample)
+        #     val_sample = valloader.dataset.get_sample()
+        #     val_predict = visualizer.make_videos(model, val_sample)
+        #     writer.add_video("Train Predict", train_predict, epoch, fps=4)
+        #     writer.add_video("Val Predict", val_predict, epoch, fps=4)
         # Writer for TensorBoard
         subjmeter.reset()
     return subjmeter
