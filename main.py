@@ -158,7 +158,7 @@ if __name__ == "__main__":
     ]
 
     # device = torch.device(f"cuda:{args.GPU[0]}" if torch.cuda.is_available() else "cpu")
-    tb = f"{args.TENSOR_BOARD}"
+    tb = f"{args.TENSOR_BOARD}/{args.DATASET}/{args.MODEL}"
     totalmeter = TotalMeter(f"{tb}/total/")
     for i, val_idx in enumerate(subject_list, 1):
         trainset = get_dataset(

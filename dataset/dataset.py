@@ -300,12 +300,14 @@ class CASME2MixIn:
 
 
 class CDEMixIn:
+    str2int = {"ne": 0, "po": 1, "sur": 2}
     int2str = {0: "ne", 1: "po", 2: "sur"}
     subject_list = (
         [("smic", sub) for sub in SMICMixIn.subject_list]
         + [("casme2", sub) for sub in CASME2MixIn.subject_list]
         + [("samm", sub) for sub in SAMMMixIn.subject_list]
     )
+    num_classes = 3
 
     @classmethod
     def get_dataset(cls, data_path: str, subject: List) -> pd.DataFrame:
