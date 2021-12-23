@@ -19,6 +19,7 @@ def trainval(
     local_rank=0,
     distributed=False,
     world_size=1,
+    visualize=False,
 ) -> Dict:
     subjmeter = SubjMeter(writer)
     if local_rank == 0:
@@ -73,14 +74,13 @@ def trainval(
                 )
         if local_rank == 0:
             pbar.update()
-        # if writer:
-        #     visualizer = Visualizer(trainloader.dataset.int2str)
-        #     train_sample = trainloader.dataset.get_sample()
-        #     train_predict = visualizer.make_videos(model, train_sample)
-        #     val_sample = valloader.dataset.get_sample()
-        #     val_predict = visualizer.make_videos(model, val_sample)
-        #     writer.add_video("Train Predict", train_predict, epoch, fps=4)
-        #     writer.add_video("Val Predict", val_predict, epoch, fps=4)
-        # Writer for TensorBoard
+        if writer is not None and visualize:
+            visualizer = Visualizer(trainloader.dataset.int2str)
+            train_sample = trainloader.dataset.get_sample()
+            train_predict = visualizer.make_videos(model, train_sample)
+            val_sample = valloader.dataset.get_sample()
+            val_predict = visualizer.make_videos(model, val_sample)
+            writer.add_video("Train Predict", train_predict, epoch, fps=4)
+            writer.add_video("Val Predict", val_predict, epoch, fps=4)
         subjmeter.reset()
     return subjmeter

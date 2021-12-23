@@ -41,14 +41,14 @@ You can train and validate the models in paper by using `main.py`.
 python3 main.py -h
 usage: main.py [-h] [-tb TENSOR_BOARD] [-imgsize IMG_SIZE [IMG_SIZE ...]]
                [-feature {RGB,GRAY,GRAY_OF,ONLY_OF,RGB_OF}] [-interpol {linear,tim}] [-num_frames NUM_FRAMES]
-               [-bs BATCH_SIZE] [-lr LR] [-ep EPOCH] [-gpu GPU [GPU ...]] [--imbalanced_sampler] [--subtb]
+               [-bs BATCH_SIZE] [-lr LR] [-ep EPOCH] [-gpu GPU [GPU ...]] [--imbalanced_sampler] [--subtb] [--visualize]
                MODEL DATA_PATH DATASET
 
 positional arguments:
   MODEL                 Like ch{Num}_{Backbone}. You can choose {Num} in [1, 3, 4, 6] and {Backbone} in [resnext,
                         swin, timesformer].
   DATA_PATH             Dataset directory except dataset name. Ex) /home/data not /home/data/SMIC
-  DATASET               Choose your dataset in ['SMIC', 'CASME2', 'SAMM']
+  DATASET               Choose your dataset in ['SMIC', 'CASME2', 'SAMM', ;C]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -67,6 +67,7 @@ optional arguments:
   -gpu GPU [GPU ...]    GPU number to use. If not available, use CPU
   --imbalanced_sampler  Flag to determine whether to use imbalanced sampler for balancing dataset with respect to class
   --subtb               Flag to determine whether to track each subject metric with Tensorboard
+  --visualize           Flag to determine whether to visualize samples and predictions
 ```
 
 

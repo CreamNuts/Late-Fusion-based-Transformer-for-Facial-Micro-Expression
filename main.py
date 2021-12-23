@@ -94,6 +94,13 @@ def _parser_args():
         dest="SUB_TB",
         help="Flag to determine whether to track each subject metric with Tensorboard",
     )
+    parser.add_argument(
+        "--visualize",
+        action="store_true",
+        default=False,
+        dest="VISUALIZE",
+        help="Flag to determine whether to visualize samples and predictions",
+    )
     return parser.parse_args()
 
 
@@ -232,6 +239,7 @@ if __name__ == "__main__":
             args.local_rank,
             args.distributed,
             args.world_size,
+            args.VISUALIZE,
         )
         if writer:
             writer.close()
