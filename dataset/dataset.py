@@ -127,7 +127,7 @@ class Facial(Dataset):
         Get data w.r.t label
         Return: List of tuples (tensor(S, C, H, W), label, rgb tensor(S, C, H, W))
         """
-        label_set = set(self.dataset["Label"])
+        label_set = set(self.get_labels())
         idx_list = []
         for idx, row in self.dataset.iterrows():
             if (label := row["Label"]) in label_set:
@@ -158,11 +158,17 @@ def get_dataset(mixin, *args, **kwargs):
 
 class SMICMixIn:
     str2int = {"ne": 0, "po": 1, "sur": 2}
+    cde_str2int = str2int
     int2str = {i: k for k, i in str2int.items()}
     subject_list = [i for i in range(1, 21) if i not in [7, 10, 16, 17]]
     num_classes = 3
 
-    def get_dataset(self, data_path: str, subject: List) -> pd.DataFrame:
+    @classmethod
+    def get_dataset(cls, data_path: str, subject: List, cde=False) -> pd.DataFrame:
+        if cde:
+            str2int = cls.cde_str2int
+        else:
+            str2int = cls.str2int
         # Get all img's path
         path = Path(data_path) / "SMIC_CROP" / "HS"
         datadict = defaultdict(list)
@@ -179,7 +185,7 @@ class SMICMixIn:
                     {
                         "Subject": sub,
                         "Paths": datadict[key],
-                        "Label": self.str2int[info[1]],
+                        "Label": str2int[info[1]],
                     },
                     ignore_index=True,
                 )
@@ -198,11 +204,26 @@ class SAMMMixIn:
         # 'Fear': 6,  # 5.03%/8 samples
         # 'Sadness': 7,  # 3.77%/6 samples
     }
+    cde_str2int = {
+        "Anger": 0,  # ne
+        "Contempt": 0,  # ne
+        "Happiness": 1,
+        "Surprise": 2,
+        "Others": 0,
+        "Disgust": 0,  # ne
+        "Fear": 0,  # ne
+        "Sadness": 0,  # ne
+    }
     int2str = {i: k for k, i in str2int.items()}
     subject_list = [i for i in range(6, 38) if i not in [8, 27, 29]]
     num_classes = 5
 
-    def get_dataset(self, data_path: str, subject: List) -> pd.DataFrame:
+    @classmethod
+    def get_dataset(cls, data_path: str, subject: List, cde=False) -> pd.DataFrame:
+        if cde:
+            str2int = cls.cde_str2int
+        else:
+            str2int = cls.str2int
         # Read xlsx
         samm_path = Path(data_path) / "SAMM" / "SAMM_CROP"
         xlsx_path = samm_path / "SAMM_Micro_FACS_Codes_v2.xlsx"
@@ -212,7 +233,7 @@ class SAMMMixIn:
         new_dataset = pd.DataFrame(columns=["Subject", "Paths", "Label"])
         # Get Video paths
         for idx, video in dataset.iterrows():
-            if (emotion := video["Estimated Emotion"]) in self.str2int.keys() and (
+            if (emotion := video["Estimated Emotion"]) in str2int.keys() and (
                 sub := video["Subject"]
             ) in subject:
                 frame_paths = (samm_path / f"{sub:0>3}/{video['Filename']}").glob("*")
@@ -220,8 +241,9 @@ class SAMMMixIn:
                 new_dataset.loc[idx] = [
                     video["Subject"],
                     video_path,
-                    self.str2int[emotion],
+                    str2int[emotion],
                 ]
+        new_dataset = new_dataset.sort_values(by="Subject").reset_index(drop=True)
         return new_dataset
 
 
@@ -235,11 +257,25 @@ class CASME2MixIn:
         # 'fear': 5,
         "surprise": 4,
     }
+    cde_str2int = {
+        "disgust": 0,
+        "repression": 0,
+        # "sadness": 2,
+        "happiness": 1,
+        # "others": 3,
+        # 'fear': 5,
+        "surprise": 2,
+    }
     int2str = {i: k for k, i in str2int.items()}
     subject_list = list(range(1, 27))
     num_classes = 5
 
-    def get_dataset(self, data_path: str, subject: List) -> pd.DataFrame:
+    @classmethod
+    def get_dataset(cls, data_path: str, subject: List, cde=False) -> pd.DataFrame:
+        if cde:
+            str2int = cls.cde_str2int
+        else:
+            str2int = cls.str2int
         # Read xlsx
         casme2_path = Path(data_path) / "CASME2"
         xlsx_path = casme2_path / "CASME2-coding-20190701.xlsx"
@@ -247,7 +283,7 @@ class CASME2MixIn:
         new_dataset = pd.DataFrame(columns=["Subject", "Paths", "Label"])
         # Get Video paths
         for idx, video in dataset.iterrows():
-            if (emotion := video["Estimated Emotion"]) in self.str2int.keys() and (
+            if (emotion := video["Estimated Emotion"]) in str2int.keys() and (
                 sub := video["Subject"]
             ) in subject:
                 frame_paths = (casme2_path / "Cropped" / f"sub{sub:0>2}/{video['Filename']}").glob(
@@ -257,6 +293,29 @@ class CASME2MixIn:
                 new_dataset.loc[idx] = [
                     video["Subject"],
                     video_path,
-                    self.str2int[emotion],
+                    str2int[emotion],
                 ]
+        new_dataset = new_dataset.sort_values(by="Subject").reset_index(drop=True)
+        return new_dataset
+
+
+class CDEMixIn:
+    str2int = {"ne": 0, "po": 1, "sur": 2}
+    int2str = {0: "ne", 1: "po", 2: "sur"}
+    subject_list = (
+        [("smic", sub) for sub in SMICMixIn.subject_list]
+        + [("casme2", sub) for sub in CASME2MixIn.subject_list]
+        + [("samm", sub) for sub in SAMMMixIn.subject_list]
+    )
+    num_classes = 3
+
+    @classmethod
+    def get_dataset(cls, data_path: str, subject: List) -> pd.DataFrame:
+        sub = defaultdict(list)
+        for name, idx in subject:
+            sub[name].append(idx)
+        smic_pd = SMICMixIn.get_dataset(data_path, sub["smic"], cde=True)
+        casme2_pd = CASME2MixIn.get_dataset(data_path, sub["casme2"], cde=True)
+        samm_pd = SAMMMixIn.get_dataset(data_path, sub["samm"], cde=True)
+        new_dataset = pd.concat([smic_pd, casme2_pd, samm_pd], ignore_index=True)
         return new_dataset
