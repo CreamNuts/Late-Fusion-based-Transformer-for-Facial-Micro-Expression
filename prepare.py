@@ -30,6 +30,7 @@ if __name__ == "__main__":
     landmark_base = data_path.with_stem(f"{data_path.stem}_LANDMARK")
 
     preprocess = Preprocess(device=device, ckp_dir=WEIGHT)
+    box = None
     for img_path in tqdm(list(data_path.rglob(f"*.{args.EXT}"))):
         orig = cv2.imread(str(img_path))
         orig = cv2.cvtColor(orig, cv2.COLOR_BGR2RGB)
@@ -39,7 +40,7 @@ if __name__ == "__main__":
         landmark_path.parent.mkdir(parents=True, exist_ok=True)
         numpy_path = landmark_path.with_suffix(".npy")
         try:
-            cropped, landmark, crp_w_lnd = preprocess(orig, landmark_img=True)
+            box, cropped, landmark, crp_w_lnd = preprocess(orig, box, landmark_img=True)
             cv2.imwrite(str(crop_path), cropped)
             cv2.imwrite(str(landmark_path), crp_w_lnd)
             np.save(numpy_path, landmark)

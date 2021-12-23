@@ -77,9 +77,12 @@ class Preprocess:
         self.classifier.eval()
         self.device = device
 
-    def __call__(self, img, landmark_img=False):
+    def __call__(self, img, coord=None, landmark_img=False):
         height, width, _ = img.shape
-        box = self.detect(img)
+        if coord is not None:
+            box = coord
+        else:
+            box = self.detect(img)
         bbox = BBox(box[0], width, height)
         cropped = img[bbox.orig_top : bbox.orig_bottom, bbox.orig_left : bbox.orig_right]
         landmark = img[bbox.top : bbox.bottom, bbox.left : bbox.right]
@@ -87,8 +90,8 @@ class Preprocess:
         if landmark_img:
             landmark_ = bbox.reprojectLandmark(landmark)
             crp_w_lnd = drawLandmark(img, landmark_)
-            return cropped, landmark, crp_w_lnd
-        return cropped, landmark
+            return box, cropped, landmark, crp_w_lnd
+        return box, cropped, landmark
 
     def detect(self, img):
         bbox_list, _ = self.detector.detect(img)
