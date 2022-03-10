@@ -1,5 +1,5 @@
 # Late Fusion-based Video Transformer for Facial Micro-expression Recognition
-This implementation is ans official code on the paper *Late Fusion-based Video Transformer for Facial Micro-expression Recognition*. In paper, we just validated one micro-facial dataset, SMIC. But we implemented our code to be able to expriment on the CASME2 and SAMM dataset for futher research.
+This implementation is ans official code on the paper [*Late Fusion-based Video Transformer for Facial Micro-expression Recognition*](https://www.mdpi.com/2076-3417/12/3/1169). In paper, we just validated one micro-facial dataset, SMIC. But we implemented our code to be able to expriment on the CASME2 and SAMM dataset for futher research.
 
 ## Requirements
 * Python 3.9.6
