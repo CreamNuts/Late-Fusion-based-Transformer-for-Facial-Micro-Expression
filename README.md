@@ -73,5 +73,5 @@ optional arguments:
 
 For training and validation the paper's proposed model, use the following command:
 ```
-python3 main.py ch3_3_fusion_cnn_like /path/data SMIC -imgsize 224 -feature GRAY_OF -interpol linear -num_frames 16 -bs 1 -ep 100 --imbalanced_sampler 
+python3 main.py ch3_1_fusion_cnn_like /path/data SMIC -imgsize 224 -feature GRAY_OF -interpol linear -num_frames 16 -bs 1 -ep 100 --imbalanced_sampler 
 ```
